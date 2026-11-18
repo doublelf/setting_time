@@ -1,0 +1,60 @@
+# People-flow / dwell-time pipeline configuration.
+# Paths are resolved relative to the project root when the file exists there.
+
+source:
+  kind: file                # file | rtsp | webcam
+  path: assets/videos/coffee_shop.mp4
+  frame_stride: 2           # process every N-th frame (CPU budget)
+  max_duration_s: null
+
+detector:
+  model: assets/weights/yolo26n.onnx
+  imgsz: 640
+  conf: 0.25
+  iou: 0.7
+  device: cpu
+  classes: [0]              # COCO person
+  half: false
+  max_det: 100
+
+runtime:
+  intra_op_threads: 8        # shared by PyTorch and every ONNX Runtime session
+  inter_op_threads: 1
+
+tracker:
+  config: configs/trackers/tracktrack_reid.yaml
+  track_buffer: 120
+  persist: true
+
+reid:
+  enabled: true
+  model: assets/weights/yolo26n-reid.onnx
+  device: cpu
+  imgsz: 320                 # crop size fed to the encoder (the net was trained at 448)
+  refresh_interval: 3        # re-encode a tracked person every N frames
+  cache_iou: 0.70            # box overlap that still counts as the same person
+
+dwell:
+  merge_window_s: 60.0      # how long a person may be invisible and still be the same visit
+  merge_threshold: 0.80     # acceptance score of a cross-track merge
+  review_threshold: 0.70    # below this a merge is flagged for human review
+  min_cosine: 0.70          # hard floor on appearance similarity
+  w_appearance: 0.90
+  w_spatial: 0.06
+  w_size: 0.04
+  spatial_tolerance_px: 260.0
+  max_speed_px_s: 120.0      # plausible walking speed, used to scale the distance tolerance
+  size_tolerance_ratio: 0.45
+  border_margin_px: 10.0
+  exit_speed_px: 1.5        # px/frame of outward motion needed to call it "left the scene"
+  interval_gap_s: 0.25      # gaps below this are treated as one continuous sighting
+  min_track_frames: 3
+  min_dwell_s: 1.0          # shorter sightings are treated as detection noise
+
+output:
+  dir: out
+  overlay: true
+  overlay_fps: null
+  write_json: true
+  write_events: true
+  write_review: true

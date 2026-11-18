@@ -1,0 +1,47 @@
+# TrackTrack tracker, tuned for dwell-time analytics on a fixed indoor camera.
+#
+# The Ultralytics defaults are tuned for generic MOT benchmarks. For dwell time the
+# critical difference is that a track id must survive a realistic occlusion, otherwise
+# one person's stay is reported as several fragments.
+
+tracker_type: tracktrack
+
+# --- association thresholds -------------------------------------------------------
+# The stock 0.6 is strict for indoor footage where an occluded person is often only
+# partially visible; 0.4 keeps those fragments attached to their track.
+track_high_thresh: 0.4
+# Lower bound of the second association pass that rescues tracks through brief occlusions.
+track_low_thresh: 0.15
+# The stock 0.7 spawns new ids too eagerly, which fragments the dwell time.
+new_track_thresh: 0.5
+# Frames a lost track is kept alive. The stock value of 30 only tolerates 1 second of
+# occlusion at 30 fps - far too short for a shopper hidden behind a shelf.
+track_buffer: 120
+match_thresh: 0.7
+fuse_score: True
+# Enables the relaxed second association pass that re-binds tracks that were lost for a
+# long time. Disabled (0.0) in the stock config, which is the main cause of id breaks.
+lost_match_thr: 0.85
+
+# --- association weights ----------------------------------------------------------
+iou_weight: 0.5
+reid_weight: 0.5
+conf_weight: 0.1
+angle_weight: 0.05
+
+# --- iterative assignment ---------------------------------------------------------
+penalty_p: 0.2
+penalty_q: 0.4
+reduce_step: 0.05
+
+# --- track-aware initialisation ---------------------------------------------------
+tai_thr: 0.5
+min_track_len: 3
+
+# --- camera motion compensation ----------------------------------------------------
+# The camera is fixed, so optical-flow compensation is pure overhead.
+gmc_method: none
+
+# --- re-identification -------------------------------------------------------------
+with_reid: True
+model: assets/weights/yolo26n-reid.onnx
